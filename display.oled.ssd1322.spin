@@ -119,7 +119,7 @@ PUB plot(x, y, c) | mask, p, b1'xxx need GFX_DIRECT case
 ' Draw a single pixel
 '   (x, y): screen coordinates
 '   c:      color
-    if ( (x < 0) or (x > _disp_width) or (y < 0) or (y > _disp_height) )
+    if ( (x < 0) or (x > _disp_xmax) or (y < 0) or (y > _disp_ymax) )
         return
     if ( x.[0] )                                ' for odd-numbered columns,
         mask := c                               '   put the color data into the lower nibble
