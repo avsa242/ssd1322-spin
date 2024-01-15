@@ -8,7 +8,7 @@ This is a P8X32A/Propeller, P2X8C4M64P/Propeller 2 driver object for SSD1322 OLE
 
 ## Salient Features
 
-* SPI connection at 20MHz (P1)
+* SPI connection at 20MHz (P1), 20MHz+ (P2)
 * Integration with generic graphics library
 
 
