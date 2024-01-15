@@ -1,0 +1,239 @@
+{
+    --------------------------------------------
+    Filename: display.oled.ssd1322.spin
+    Author: Jesse Burt
+    Description: Driver for SSD1322 4bpp OLED displays
+    Copyright (c) 2024
+    Started Jul 17, 2023
+    Updated Jan 15, 2024
+    See end of file for terms of use.
+    --------------------------------------------
+}
+
+#define MEMMV_NATIVE bytemove
+
+CON
+
+' -- Default I/O configuration (can be overridden by parent object)
+    WIDTH       = 256
+    HEIGHT      = 64
+
+    CS          = 0
+    SCK         = 1
+    MOSI        = 2
+    DC          = 3
+    RST         = -1
+'--
+
+    MAX_COLOR   = 15
+    BYTESPERPX  = 1
+    BUFF_SZ     = (WIDTH * HEIGHT) / 2
+
+    CMD         = 0
+    DATA        = 1
+
+
+OBJ
+
+    core:   "core.con.ssd1322"                  ' hardware-specific constants
+    spi:    "com.spi.20mhz"                     ' SPI engine
+    time:   "time"                              ' timekeeping methods
+
+VAR
+
+    byte _framebuffer[BUFF_SZ]                  ' display/framebuffer
+    byte _CS, _DC, _RST
+
+
+PUB start(): s
+' Start the driver using default I/O settings and internal framebuffer
+    return startx(CS, SCK, MOSI, DC, RST, WIDTH, HEIGHT, @_framebuffer)
+
+
+PUB startx(CS_PIN, SCK_PIN, MOSI_PIN, DC_PIN, RES_PIN, DISP_WID, DISP_HT, ptr_framebuffer=0): s
+' Start the driver using custom I/O settings and (optionally) external framebuffer
+'   CS_PIN:                 Chip Select, 0..31
+'   SCK_PIN:                Serial Clock, 0..31
+'   MOSI_PIN:               Master-Out/Slave-In, 0..31
+'   DC_PIN:                 Data/Command (sometimes known as RS or Register Select), 0..31
+'   RESET_PIN (optional):   Reset (ignored if set to -1), 0..31
+'   DISP_WID, DISP_HT:      display dimensions, in pixels
+'   ptr_framebuffer (optional):      pointer to display buffer
+   if ( s := spi.init(SCK_PIN, MOSI_PIN, -1, core.SPI_MODE) )
+        time.usleep(core.T_POR)
+        outa[CS_PIN] := 1
+        outa[DC_PIN] := 1
+        dira[CS_PIN] := 1
+        dira[DC_PIN] := 1
+        _CS := CS_PIN
+        _DC := DC_PIN
+        _RST := RES_PIN
+        reset()
+        defaults()
+        set_dims(DISP_WID, DISP_HT)
+        set_address(ptr_framebuffer)
+        return s
+    return FALSE
+
+PUB stop()
+' Stop the driver and reclaim/clear memory used
+    bytefill(@_framebuffer, 0, BUFF_SZ)
+    bytefill(@_CS, 0, 3)
+    spi.deinit()
+
+
+PUB defaults()
+' Factory default settings
+    cmd1(core.SET_CMD_LOCK, $12)
+    cmd0(core.SLEEP_ON)
+    cmd1(core.SET_CLKDIV_OSCFREQ, $d0)'$91)
+    cmd1(core.SET_MUX_RATIO, $3f)
+    cmd1(core.SET_DISP_OFFS, $00)
+    cmd1(core.SET_DISP_ST_LINE, $00)
+    cmd2(core.SET_REMAP, $14, $11)
+    cmd1(core.SET_GPIO, $00)
+    cmd1(core.FUNC_SEL, $01)
+    cmd2(core.DISP_ENH_A, $a0, $b5)'$fd)
+    cmd1(core.SET_CONTR_CURR, $7f)'$ff)
+    cmd1(core.MAST_CURR_CTRL, $0f)
+    cmd0(core.DEF_LINEAR_GRAY)
+    cmd1(core.SET_PHASE_LEN, $e2)
+    cmd2(core.DISP_ENH_B, $a2, $20)'$82, $20)
+    cmd1(core.SET_PRECHG_VOLT, $1f)
+    cmd1(core.SET_SEC_PRECHG_PER, $08)
+    cmd1(core.SET_VCOMH, $07)
+    cmd0(core.SET_DISP_MODE_NORM)
+    cmd0(core.DIS_PARTIAL_DISP)
+    clear()
+    show()
+    cmd0(core.SLEEP_OFF)
+
+
+PUB clear() | y, x'xxx need GFX_DIRECT case
+' Clear the display
+'    longfill(@_framebuffer, 0, constant(8192/4))
+    bytefill(@_framebuffer, 0, BUFF_SZ)
+
+
+PUB plot(x, y, c) | mask, p, b1'xxx need GFX_DIRECT case
+' Draw a single pixel
+'   (x, y): screen coordinates
+'   c:      color
+    if ( (x < 0) or (x > _disp_width) or (y < 0) or (y > _disp_height) )
+        return
+    if ( x.[0] )                                ' for odd-numbered columns,
+        mask := c                               '   put the color data into the lower nibble
+    else                                        ' for even-numbered columns,
+        mask := (c << 4)                        '   put the color data into the upper nibble
+
+'    mask := (x.[0]) ? c : (c << 4)'xxx alternate; evaluate timing & size
+
+    p := @_framebuffer + ( (x >> 1) + (y * constant(256 / 2) ) )
+    b1 := byte[p] & ( (x.[0]) ? $f0 : $0f )  ' if x bit 0 is set, mask is f0, otherwise 0f
+
+    byte[p] := b1 | mask
+
+
+#ifndef GFX_DIRECT
+PUB point(x, y): c
+' Get the currently set color of a pixel
+'   (x, y): screen coordinates
+'   Returns: 4-bit color
+    { find pixel address within framebuffer }
+    c := byte[@_framebuffer[(x >> 1) + (y * (_disp_width / 2))]]
+    if ( x.[0] )                                ' for odd-numbered columns,
+        c &= $0f                                '   get the lower nibble
+    else                                        ' for even-numbered columns,
+        c >>= 4                                 '   get the upper nibble
+#endif
+
+
+PUB reset()
+' Reset the device
+    if ( lookdown(_RST: 0..31) )
+        outa[_RST] := 1
+        dira[_RST] := 1
+        outa[_RST] := 0
+#ifdef __OUTPUT_ASM__
+        time.usleep(core.T_RES)
+#endif
+        outa[_RST] := 1
+
+
+PUB setxy(x, y)'xxx nonstandard
+' Set display position for next drawing operation
+    cmd2(core.SET_COL_ADDR, $1c+x, $1c+x)'xxx
+    cmd2(core.SET_ROW_ADDR, y, y)
+
+
+PUB show()
+' Show the display buffer on the display
+    cmd2(core.SET_COL_ADDR, $1c, $5b)'xxx
+    cmd2(core.SET_ROW_ADDR, 0, $3f)'xxx
+    cmd0(core.WR_RAM)
+    outa[_DC] := DATA
+    outa[_CS] := 0
+        spi.wrblock_lsbf(@_framebuffer, BUFF_SZ)
+    outa[_CS] := 1
+
+
+PRI cmd0(c)
+' Issue simple command, no parameters
+    outa[_DC] := CMD
+    outa[_CS] := 0
+        spi.wr_byte(c)
+    outa[_CS] := 1
+
+PRI cmd1(c, p)
+' Issue command with one parameter
+    outa[_DC] := CMD
+    outa[_CS] := 0
+        spi.wr_byte(c)
+        outa[_DC] := DATA
+        spi.wr_byte(p)
+    outa[_CS] := 1
+
+PRI cmd2(c, p1, p2)
+' Issue command with two parameters
+    outa[_DC] := CMD
+    outa[_CS] := 0
+        spi.wr_byte(c)
+        outa[_DC] := DATA
+        spi.wr_byte(p1)
+        spi.wr_byte(p2)
+    outa[_CS] := 1
+
+
+#ifndef GFX_DIRECT
+PRI memfill(xs, ys, val, count)
+' Fill region of display buffer memory
+'   xs, ys: Start of region
+'   val: Color
+'   count: Number of consecutive memory locations to write
+    bytefill(   _ptr_drawbuffer + (xs >> 1) + (ys * (_disp_width/2)), ...
+                val | (val << 4), ...
+                count / 2 )
+#endif
+
+#include "graphics.common.spinh"
+
+DAT
+{
+Copyright 2024 Jesse Burt
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+}
+
