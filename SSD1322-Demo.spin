@@ -1,13 +1,12 @@
 {
-    --------------------------------------------
-    Filename: SSD1322-Demo.spin
-    Author: Jesse Burt
-    Description: Demo of the SSD1322 driver
-    Copyright (c) 2024
-    Started Jul 17, 2023
-    Updated Jan 15, 2024
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       SSD1322-Demo.spin
+    Description:    Demo of the SSD1322 driver
+    Author:         Jesse Burt
+    Started:        Jul 17, 2023
+    Updated:        Jan 28, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 }
 
 CON
@@ -15,18 +14,18 @@ CON
     _clkmode    = cfg#_clkmode
     _xinfreq    = cfg#_xinfreq
 
-' -- User-defined constants
-    SER_BAUD    = 115_200
-' --
 
 OBJ
 
     cfg:    "boardcfg.flip"
+    time:   "time"
+    fnt:    "font.5x8"
+    ser:    "com.serial.terminal.ansi" | SER_BAUD=115_200
     disp:   "display.oled.ssd1322" | CS=0, SCK=1, MOSI=2, DC=3, RST=4, WIDTH=256, HEIGHT=64
 
-PUB setup() | i
+PUB setup()
 
-    ser.start(SER_BAUD)
+    ser.start()
     time.msleep(30)
     ser.clear()
     ser.strln(@"Serial terminal started")
@@ -45,16 +44,13 @@ PUB setup() | i
 
     demo()
 
+
 DAT
 
     _drv_name   byte "SSD1322", 0
 
 #include "GFXDemo-common.spinh"
 
-CON
-
-    WIDTH   = disp.WIDTH
-    HEIGHT  = disp.HEIGHT
 
 DAT
 {

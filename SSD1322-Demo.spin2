@@ -1,31 +1,29 @@
 {
-    --------------------------------------------
-    Filename: SSD1322-Demo.spin2
-    Author: Jesse Burt
-    Description: Demo of the SSD1322 driver (P2 version)
-    Copyright (c) 2024
-    Started Jan 15, 2024
-    Updated Jan 15, 2024
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       SSD1322-Demo.spin2
+    Description:    Demo of the SSD1322 driver
+    Author:         Jesse Burt
+    Started:        Jan 15, 2024
+    Updated:        Jan 28, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 }
 
 CON
 
-    _clkfreq    = 250_000_000'cfg._clkfreq_def
+    _clkfreq    = cfg._clkfreq_def
     _xtlfreq    = cfg._xtlfreq
 
-' -- User-defined constants
-    SER_BAUD    = 2_000_000
-' --
 
 OBJ
 
     cfg:    "boardcfg.p2eval"
-    disp:   "display.oled.ssd1322" | CS=16, SCK=17, MOSI=18, DC=19, RST=20, WIDTH=256, HEIGHT=64, ...
-                                        SPI_FREQ=20_000_000
+    fnt:    "font.5x8"
+    ser:    "com.serial.terminal.ansi" | SER_BAUD=2_000_000
+    disp:   "display.oled.ssd1322" | CS=32, SCK=33, MOSI=34, DC=35, RST=36, WIDTH=256, HEIGHT=64, ...
+                                        SPI_FREQ=10_000_000
 
-PUB setup() | i
+PUB setup()
 
     ser.start()
     ser.clear()
@@ -45,16 +43,13 @@ PUB setup() | i
 
     demo()
 
+
 DAT
 
     _drv_name   byte "SSD1322", 0
 
 #include "GFXDemo-common.spin2h"
 
-CON
-
-    WIDTH   = disp.WIDTH
-    HEIGHT  = disp.HEIGHT
 
 DAT
 {

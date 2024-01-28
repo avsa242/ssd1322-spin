@@ -1,13 +1,12 @@
 {
-    --------------------------------------------
-    Filename: display.oled.ssd1322.spin
-    Author: Jesse Burt
-    Description: Driver for SSD1322 4bpp OLED displays
-    Copyright (c) 2024
-    Started Jul 17, 2023
-    Updated Jan 15, 2024
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       display.oled.ssd1322.spin
+    Description:    Driver for SSD1322 OLED displays
+    Author:         Jesse Burt
+    Started:        Jul 17, 2023
+    Updated:        Jan 28, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 }
 
 #define MEMMV_NATIVE bytemove
@@ -25,9 +24,15 @@ CON
     RST         = -1
 '--
 
-    MAX_COLOR   = 15
-    BYTESPERPX  = 1
-    BUFF_SZ     = (WIDTH * HEIGHT) / 2
+    BPP         = 4                             ' bits per pixel/color depth of the display
+    BYTESPERPX  = 1 #> (BPP/8)                  ' limit to minimum of 1
+    BPPDIV      = BYTESPERPX #> (8 / BPP)       ' limit to range BYTESPERPX .. (8/BPP)
+    BUFF_SZ     = (WIDTH * HEIGHT) / BPPDIV
+    MAX_COLOR   = (1 << BPP)-1
+    XMAX        = WIDTH-1
+    YMAX        = HEIGHT-1
+    CENTERX     = WIDTH/2
+    CENTERY     = HEIGHT/2
 
     CMD         = 0
     DATA        = 1

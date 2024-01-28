@@ -1,13 +1,12 @@
 {
-    --------------------------------------------
-    Filename: display.oled.ssd1322.spin2
-    Author: Jesse Burt
-    Description: Driver for SSD1322 4bpp OLED displays (P2 version)
-    Copyright (c) 2024
-    Started Jan 15, 2024
-    Updated Jan 15, 2024
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       display.oled.ssd1322.spin2
+    Description:    Driver for SSD1322 OLED displays
+    Author:         Jesse Burt
+    Started:        Jan 15, 2024
+    Updated:        Jan 28, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 }
 
 #define MEMMV_NATIVE bytemove
@@ -26,9 +25,15 @@ CON
     SPI_FREQ    = 1_000_000
 '--
 
-    MAX_COLOR   = 15
-    BYTESPERPX  = 1
-    BUFF_SZ     = (WIDTH * HEIGHT) / 2
+    BPP         = 4                             ' bits per pixel/color depth of the display
+    BYTESPERPX  = 1 #> (BPP/8)                  ' limit to minimum of 1
+    BPPDIV      = BYTESPERPX #> (8 / BPP)       ' limit to range BYTESPERPX .. (8/BPP)
+    BUFF_SZ     = (WIDTH * HEIGHT) / BPPDIV
+    MAX_COLOR   = (1 << BPP)-1
+    XMAX        = WIDTH-1
+    YMAX        = HEIGHT-1
+    CENTERX     = WIDTH/2
+    CENTERY     = HEIGHT/2
 
     CMD         = 0
     DATA        = 1
@@ -62,10 +67,8 @@ PUB startx(CS_PIN, SCK_PIN, MOSI_PIN, DC_PIN, RES_PIN, SCK_FREQ, DISP_WID, DISP_
 '   ptr_framebuffer (optional):      pointer to display buffer
    if ( s := spi.init(SCK_PIN, MOSI_PIN, -1, core.SPI_MODE, SCK_FREQ) )
         waitus(core.T_POR)
-        outa[CS_PIN] := 1
-        outa[DC_PIN] := 1
-        dira[CS_PIN] := 1
-        dira[DC_PIN] := 1
+        pinh(CS_PIN)
+        pinh(DC_PIN)
         _CS := CS_PIN
         _DC := DC_PIN
         _RST := RES_PIN
@@ -152,13 +155,12 @@ PUB point(x, y): c
 PUB reset()
 ' Reset the device
     if ( lookdown(_RST: 0..31) )
-        outa[_RST] := 1
-        dira[_RST] := 1
-        outa[_RST] := 0
+        pinh(_RST)
+        pinl(_RST)
 #ifdef __OUTPUT_ASM__
         waitus(core.T_RES)
 #endif
-        outa[_RST] := 1
+        pinh(_RST)
 
 
 PUB setxy(x, y)'xxx nonstandard
@@ -172,7 +174,7 @@ PUB show()
     cmd2(core.SET_COL_ADDR, $1c, $5b)'xxx
     cmd2(core.SET_ROW_ADDR, 0, $3f)'xxx
     cmd0(core.WR_RAM)
-    outa[_DC] := DATA
+    pinw(_DC, DATA)
     pinl(_CS)
         spi.wrblock_lsbf(@_framebuffer, BUFF_SZ)
     pinh(_CS)
@@ -180,26 +182,26 @@ PUB show()
 
 PRI cmd0(c)
 ' Issue simple command, no parameters
-    outa[_DC] := CMD
+    pinw(_DC, CMD)
     pinl(_CS)
         spi.wr_byte(c)
     pinh(_CS)
 
 PRI cmd1(c, p)
 ' Issue command with one parameter
-    outa[_DC] := CMD
+    pinw(_DC, CMD)
     pinl(_CS)
         spi.wr_byte(c)
-        outa[_DC] := DATA
+        pinw(_DC, DATA)
         spi.wr_byte(p)
     pinh(_CS)
 
 PRI cmd2(c, p1, p2)
 ' Issue command with two parameters
-    outa[_DC] := CMD
+    pinw(_DC, CMD)
     pinl(_CS)
         spi.wr_byte(c)
-        outa[_DC] := DATA
+        pinw(_DC, DATA)
         spi.wr_byte(p1)
         spi.wr_byte(p2)
     pinh(_CS)
