@@ -1,18 +1,18 @@
 {
----------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
     Filename:       SSD1322-Demo.spin
     Description:    Demo of the SSD1322 driver
     Author:         Jesse Burt
     Started:        Jul 17, 2023
-    Updated:        Jan 28, 2024
+    Updated:        Aug 20, 2024
     Copyright (c) 2024 - See end of file for terms of use.
----------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
 }
 
 CON
 
-    _clkmode    = cfg#_clkmode
-    _xinfreq    = cfg#_xinfreq
+    _clkmode    = cfg._clkmode
+    _xinfreq    = cfg._xinfreq
 
 
 OBJ
@@ -22,6 +22,7 @@ OBJ
     fnt:    "font.5x8"
     ser:    "com.serial.terminal.ansi" | SER_BAUD=115_200
     disp:   "display.oled.ssd1322" | CS=0, SCK=1, MOSI=2, DC=3, RST=4, WIDTH=256, HEIGHT=64
+
 
 PUB setup()
 

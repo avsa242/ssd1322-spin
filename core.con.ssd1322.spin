@@ -1,13 +1,12 @@
 {
-    --------------------------------------------
-    Filename: core.con.ssd1322.spin
-    Author: Jesse Burt
-    Description: SSD1322-specific constants
-    Copyright (c) 2024
-    Started Jul 17, 2023
-    Updated Jan 15, 2024
-    See end of file for terms of use.
-    --------------------------------------------
+----------------------------------------------------------------------------------------------------
+    Filename:       core.con.ssd1322.spin
+    Description:    SSD1322-specific constants
+    Author:         Jesse Burt
+    Started:        Jul 17, 2023
+    Updated:        Aug 20, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+----------------------------------------------------------------------------------------------------
 }
 
 CON
@@ -106,8 +105,10 @@ CON
     DISP_ENH_B          = $d1
     SET_CMD_LOCK        = $fd
 
+
 PUB null()
 ' This is not a top-level object
+
 
 DAT
 {

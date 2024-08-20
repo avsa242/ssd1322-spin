@@ -1,12 +1,12 @@
 {
----------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
     Filename:       display.oled.ssd1322.spin
     Description:    Driver for SSD1322 OLED displays
     Author:         Jesse Burt
     Started:        Jul 17, 2023
     Updated:        Jan 28, 2024
     Copyright (c) 2024 - See end of file for terms of use.
----------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
 }
 
 #define MEMMV_NATIVE bytemove
@@ -79,6 +79,7 @@ PUB startx(CS_PIN, SCK_PIN, MOSI_PIN, DC_PIN, RES_PIN, DISP_WID, DISP_HT, ptr_fr
         set_address(ptr_framebuffer)
         return s
     return FALSE
+
 
 PUB stop()
 ' Stop the driver and reclaim/clear memory used
