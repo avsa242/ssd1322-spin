@@ -4,7 +4,7 @@
     Description:    Driver for SSD1322 OLED displays
     Author:         Jesse Burt
     Started:        Jul 17, 2023
-    Updated:        Jan 28, 2024
+    Updated:        Aug 24, 2024
     Copyright (c) 2024 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 }
@@ -22,6 +22,7 @@ CON
     MOSI        = 2
     DC          = 3
     RST         = -1
+    SPI_FREQ    = 1_000_000                     ' not currently used
 '--
 
     BPP         = 4                             ' bits per pixel/color depth of the display
@@ -52,18 +53,20 @@ VAR
 
 PUB start(): s
 ' Start the driver using default I/O settings and internal framebuffer
-    return startx(CS, SCK, MOSI, DC, RST, WIDTH, HEIGHT, @_framebuffer)
+    return startx(CS, SCK, MOSI, DC, RST, SPI_FREQ, WIDTH, HEIGHT, @_framebuffer)
 
 
-PUB startx(CS_PIN, SCK_PIN, MOSI_PIN, DC_PIN, RES_PIN, DISP_WID, DISP_HT, ptr_framebuffer=0): s
+PUB startx(CS_PIN, SCK_PIN, MOSI_PIN, DC_PIN, RES_PIN, SCK_FREQ, DISP_WID, DISP_HT, p_fb=0): s
 ' Start the driver using custom I/O settings and (optionally) external framebuffer
-'   CS_PIN:                 Chip Select, 0..31
-'   SCK_PIN:                Serial Clock, 0..31
-'   MOSI_PIN:               Master-Out/Slave-In, 0..31
-'   DC_PIN:                 Data/Command (sometimes known as RS or Register Select), 0..31
-'   RESET_PIN (optional):   Reset (ignored if set to -1), 0..31
-'   DISP_WID, DISP_HT:      display dimensions, in pixels
-'   ptr_framebuffer (optional):      pointer to display buffer
+'   CS_PIN:             Chip Select, 0..31
+'   SCK_PIN:            Serial Clock, 0..31
+'   MOSI_PIN:           Master-Out/Slave-In, 0..31
+'   DC_PIN:             Data/Command (sometimes known as RS or Register Select), 0..31
+'   RES_PIN:            Reset (set to -1 if not used), 0..31
+'   SCK_FREQ:           SPI bus speed (not currently used)
+'   DISP_WID, DISP_HT:  display dimensions, in pixels
+'   p_fb:               (optional) pointer to display buffer (leave blank or set to 0 to use
+'                           the driver's internal framebuffer)
    if ( s := spi.init(SCK_PIN, MOSI_PIN, -1, core.SPI_MODE) )
         time.usleep(core.T_POR)
         outa[CS_PIN] := 1
@@ -76,7 +79,7 @@ PUB startx(CS_PIN, SCK_PIN, MOSI_PIN, DC_PIN, RES_PIN, DISP_WID, DISP_HT, ptr_fr
         reset()
         defaults()
         set_dims(DISP_WID, DISP_HT)
-        set_address(ptr_framebuffer)
+        set_address(p_fb)
         return s
     return FALSE
 
@@ -190,6 +193,7 @@ PRI cmd0(c)
         spi.wr_byte(c)
     outa[_CS] := 1
 
+
 PRI cmd1(c, p)
 ' Issue command with one parameter
     outa[_DC] := CMD
@@ -198,6 +202,7 @@ PRI cmd1(c, p)
         outa[_DC] := DATA
         spi.wr_byte(p)
     outa[_CS] := 1
+
 
 PRI cmd2(c, p1, p2)
 ' Issue command with two parameters
