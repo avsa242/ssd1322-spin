@@ -47,6 +47,7 @@ OBJ
 
 VAR
 
+    word _offs_x, _offs_y                       ' display panel-specific offsets
     byte _framebuffer[BUFF_SZ]                  ' display/framebuffer
     byte _CS, _DC, _RST
 
@@ -118,10 +119,24 @@ PUB defaults()
     cmd0(core.SLEEP_OFF)
 
 
+PUB preset_newhaven_3p12_256x64()
+' Preset settings: Newhaven NHD-3.12-25664UCW2
+'   256x64
+'   Panel offsets: 28, 0
+    _offs_x := 28
+    _offs_y := 0
+
+
 PUB clear() | y, x'xxx need GFX_DIRECT case
 ' Clear the display
 '    longfill(@_framebuffer, 0, constant(8192/4))
     bytefill(@_framebuffer, 0, BUFF_SZ)
+
+
+PUB draw_area(sx, sy, ex, ey)
+' Set display position for next drawing operation
+    cmd2(core.SET_COL_ADDR, _offs_x+sx, _offs_x+ex)
+    cmd2(core.SET_ROW_ADDR, _offs_y+sy, _offs_y+ey)
 
 
 PUB plot(x, y, c) | mask, p, b1'xxx need GFX_DIRECT case
@@ -137,8 +152,9 @@ PUB plot(x, y, c) | mask, p, b1'xxx need GFX_DIRECT case
 
 '    mask := (x.[0]) ? c : (c << 4)'xxx alternate; evaluate timing & size
 
-    p := @_framebuffer + ( (x >> 1) + (y * constant(256 / 2) ) )
-    b1 := byte[p] & ( (x.[0]) ? $f0 : $0f )  ' if x bit 0 is set, mask is f0, otherwise 0f
+    p := @_framebuffer + ( (x >> 1) + (y * _bytesperln) )
+    b1 := byte[p] & ( (x.[0]) ? $f0 : $0f )     ' grab pixel data from the upper or lower nibble,
+                                                '   depending on whether x is even or odd
 
     byte[p] := b1 | mask
 
@@ -169,16 +185,10 @@ PUB reset()
         outa[_RST] := 1
 
 
-PUB setxy(x, y)'xxx nonstandard
-' Set display position for next drawing operation
-    cmd2(core.SET_COL_ADDR, $1c+x, $1c+x)'xxx
-    cmd2(core.SET_ROW_ADDR, y, y)
-
-
 PUB show()
 ' Show the display buffer on the display
-    cmd2(core.SET_COL_ADDR, $1c, $5b)'xxx
-    cmd2(core.SET_ROW_ADDR, 0, $3f)'xxx
+    cmd2(core.SET_COL_ADDR, _offs_x, _offs_x+(_disp_xmax/4) )
+    cmd2(core.SET_ROW_ADDR, _offs_y, _disp_ymax)
     cmd0(core.WR_RAM)
     outa[_DC] := DATA
     outa[_CS] := 0
@@ -230,7 +240,7 @@ PRI memfill(xs, ys, val, count)
 
 DAT
 {
-Copyright 2024 Jesse Burt
+Copyright 2025 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
