@@ -4,8 +4,8 @@
     Description:    Driver for SSD1322 OLED displays
     Author:         Jesse Burt
     Started:        Jan 15, 2024
-    Updated:        Aug 24, 2024
-    Copyright (c) 2024 - See end of file for terms of use.
+    Updated:        Feb 8, 2025
+    Copyright (c) 2025 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 }
 
@@ -102,7 +102,7 @@ PUB defaults()
     cmd1(core.SET_GPIO, $00)
     cmd1(core.FUNC_SEL, $01)
     cmd2(core.DISP_ENH_A, $a0, $b5)'$fd)
-    cmd1(core.SET_CONTR_CURR, $7f)'$ff)
+    contrast(127)
     cmd1(core.MAST_CURR_CTRL, $0f)
     cmd0(core.DEF_LINEAR_GRAY)
     cmd1(core.SET_PHASE_LEN, $e2)
@@ -129,6 +129,11 @@ PUB clear() | y, x'xxx need GFX_DIRECT case
 ' Clear the display
 '    longfill(@_framebuffer, 0, (8192/4))
     bytefill(@_framebuffer, 0, BUFF_SZ)
+
+
+PUB contrast(c)
+' Set display contrast
+    cmd1(core.SET_CONTR_CURR, c)
 
 
 PUB draw_area(sx, sy, ex, ey)
