@@ -10,6 +10,13 @@ This is a P8X32A/Propeller, P2X8C4M64P/Propeller 2 driver object for SSD1322 OLE
 
 * SPI connection at 20MHz (P1), 20MHz+ (P2)
 * Integration with generic graphics library
+* Set display contrast
+* Set number of displayed lines
+* Set starting display line
+* Set panel-specific display offset
+* Set draw area for subsequent drawing operations
+* Enable display mirroring (H, V)
+* Enable display power/sleep
 
 
 ## Requirements
@@ -43,5 +50,5 @@ P2/SPIN2:
 
 ## Limitations
 
-* Very early in development - may malfunction, or outright fail to build
+* TBD
 
