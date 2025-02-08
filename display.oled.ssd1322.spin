@@ -97,7 +97,7 @@ PUB defaults()
     cmd1(core.SET_CMD_LOCK, $12)
     powered(false)
     cmd1(core.SET_CLKDIV_OSCFREQ, $d0)'$91)
-    cmd1(core.SET_MUX_RATIO, $3f)
+    disp_lines(64)
     cmd1(core.SET_DISP_OFFS, $00)
     cmd1(core.SET_DISP_ST_LINE, $00)
     cmd2(core.SET_REMAP, $14, $11)
@@ -125,7 +125,7 @@ PUB preset_newhaven_3p12_256x64()
 '   Panel offsets: 28, 0
     _offs_x := 28
     _offs_y := 0
-
+    disp_lines(64)
 
 PUB clear() | y, x'xxx need GFX_DIRECT case
 ' Clear the display
@@ -137,6 +137,12 @@ PUB contrast(c)
 ' Set display contrast
 '   c:  0..255
     cmd1(core.SET_CONTR_CURR, c)
+
+
+PUB disp_lines(l)
+' Set total number of display lines
+'   l:  16..128 (clamped to range)
+    cmd1(core.SET_MUX_RATIO, 15 #> (l-1) <# 127)
 
 
 PUB draw_area(sx, sy, ex, ey)
