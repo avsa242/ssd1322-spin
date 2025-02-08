@@ -146,7 +146,7 @@ PUB disp_lines(l)
 PUB disp_start_line(l)
 ' Set display start line
 '   Valid values: 0..127 (clamped to range; POR: 0)
-    command(core.SET_DISP_ST_LINE, 0 #> l <# 127)
+    cmd1(core.SET_DISP_ST_LINE, 0 #> l <# 127)
 
 
 PUB disp_offset(x, y)
