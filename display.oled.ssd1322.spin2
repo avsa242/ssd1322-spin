@@ -97,7 +97,7 @@ PUB defaults()
     cmd1(core.SET_CLKDIV_OSCFREQ, $d0)'$91)
     disp_lines(64)
     cmd1(core.SET_DISP_OFFS, $00)
-    cmd1(core.SET_DISP_ST_LINE, $00)
+    disp_start_line(0)
     cmd2(core.SET_REMAP, $14, $11)
     cmd1(core.SET_GPIO, $00)
     cmd1(core.FUNC_SEL, $01)
@@ -141,6 +141,19 @@ PUB disp_lines(l)
 ' Set total number of display lines
 '   l:  16..128 (clamped to range)
     cmd1(core.SET_MUX_RATIO, 15 #> (l-1) <# 127)
+
+
+PUB disp_start_line(l)
+' Set display start line
+'   Valid values: 0..127 (clamped to range; POR: 0)
+    command(core.SET_DISP_ST_LINE, 0 #> l <# 127)
+
+
+PUB disp_offset(x, y)
+' Set display panel-specific offset
+'   x, y:   offset in pixels
+    _offs_x := x
+    _offs_y := y
 
 
 PUB draw_area(sx, sy, ex, ey)
