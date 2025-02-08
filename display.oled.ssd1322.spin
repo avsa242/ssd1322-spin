@@ -95,7 +95,7 @@ PUB stop()
 PUB defaults()
 ' Factory default settings
     cmd1(core.SET_CMD_LOCK, $12)
-    cmd0(core.SLEEP_ON)
+    powered(false)
     cmd1(core.SET_CLKDIV_OSCFREQ, $d0)'$91)
     cmd1(core.SET_MUX_RATIO, $3f)
     cmd1(core.SET_DISP_OFFS, $00)
@@ -116,7 +116,7 @@ PUB defaults()
     cmd0(core.DIS_PARTIAL_DISP)
     clear()
     show()
-    cmd0(core.SLEEP_OFF)
+    powered(true)
 
 
 PUB preset_newhaven_3p12_256x64()
@@ -135,6 +135,7 @@ PUB clear() | y, x'xxx need GFX_DIRECT case
 
 PUB contrast(c)
 ' Set display contrast
+'   c:  0..255
     cmd1(core.SET_CONTR_CURR, c)
 
 
@@ -176,6 +177,17 @@ PUB point(x, y): c
     else                                        ' for even-numbered columns,
         c >>= 4                                 '   get the upper nibble
 #endif
+
+
+PUB powered(p)
+' Enable display power
+'   p:
+'       non-zero values:    on
+'       false (0):          off
+    if ( p )
+        cmd0(core.SLEEP_OFF)
+    else
+        cmd0(core.SLEEP_ON)
 
 
 PUB reset()
