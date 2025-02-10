@@ -4,7 +4,7 @@
     Description:    Driver for SSD1322 OLED displays
     Author:         Jesse Burt
     Started:        Jul 17, 2023
-    Updated:        Feb 8, 2025
+    Updated:        Feb 10, 2025
     Copyright (c) 2025 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 }
@@ -98,26 +98,26 @@ PUB stop()
 PUB defaults()
 ' Factory default settings
     _remap := $00
-    cmd1(core.SET_CMD_LOCK, $12)
+    command(core.SET_CMD_LOCK, $12, 1)
     powered(false)
-    cmd1(core.SET_CLKDIV_OSCFREQ, $d0)'$91)
+    command(core.SET_CLKDIV_OSCFREQ, $d0, 1)'$91)
     disp_lines(64)
-    cmd1(core.SET_DISP_OFFS, $00)
+    command(core.SET_DISP_OFFS, $00, 1)
     disp_start_line(0)
-    cmd2(core.SET_REMAP, $14, $11)
-    cmd1(core.SET_GPIO, $00)
-    cmd1(core.FUNC_SEL, $01)
-    cmd2(core.DISP_ENH_A, $a0, $b5)'$fd)
+    command(core.SET_REMAP, $14 | ($11 << 8), 2)
+    command(core.SET_GPIO, $00, 1)
+    command(core.FUNC_SEL, $01, 1)
+    command(core.DISP_ENH_A, $a0 | ($b5 << 8), 2)'$fd)
     contrast(127)
-    cmd1(core.MAST_CURR_CTRL, $0f)
-    cmd0(core.DEF_LINEAR_GRAY)
-    cmd1(core.SET_PHASE_LEN, $e2)
-    cmd2(core.DISP_ENH_B, $a2, $20)'$82, $20)
-    cmd1(core.SET_PRECHG_VOLT, $1f)
-    cmd1(core.SET_SEC_PRECHG_PER, $08)
-    cmd1(core.SET_VCOMH, $07)
-    cmd0(core.SET_DISP_MODE_NORM)
-    cmd0(core.DIS_PARTIAL_DISP)
+    command(core.MAST_CURR_CTRL, $0f, 1)
+    command(core.DEF_LINEAR_GRAY)
+    command(core.SET_PHASE_LEN, $e2, 1)
+    command(core.DISP_ENH_B, $a2 | ($20 << 8), 2)'$82, $20)
+    command(core.SET_PRECHG_VOLT, $1f, 1)
+    command(core.SET_SEC_PRECHG_PER, $08, 1)
+    command(core.SET_VCOMH, $07, 1)
+    command(core.SET_DISP_MODE_NORM)
+    command(core.DIS_PARTIAL_DISP)
     clear()
     show()
     powered(true)
@@ -140,19 +140,19 @@ PUB clear() | y, x'xxx need GFX_DIRECT case
 PUB contrast(c)
 ' Set display contrast
 '   c:  0..255
-    cmd1(core.SET_CONTR_CURR, c)
+    command(core.SET_CONTR_CURR, c, 1)
 
 
 PUB disp_lines(l)
 ' Set total number of display lines
 '   l:  16..128 (clamped to range)
-    cmd1(core.SET_MUX_RATIO, 15 #> (l-1) <# 127)
+    command(core.SET_MUX_RATIO, 15 #> (l-1) <# 127, 1)
 
 
 PUB disp_start_line(l)
 ' Set display start line
 '   Valid values: 0..127 (clamped to range; POR: 0)
-    cmd1(core.SET_DISP_ST_LINE, 0 #> l <# 127)
+    command(core.SET_DISP_ST_LINE, 0 #> l <# 127, 1)
 
 
 PUB disp_offset(x, y)
@@ -164,8 +164,8 @@ PUB disp_offset(x, y)
 
 PUB draw_area(sx, sy, ex, ey)
 ' Set display position for next drawing operation
-    cmd2(core.SET_COL_ADDR, _offs_x+sx, _offs_x+ex)
-    cmd2(core.SET_ROW_ADDR, _offs_y+sy, _offs_y+ey)
+    command(core.SET_COL_ADDR, (_offs_x+sx) | ( (_offs_x+ex) << 8), 2)
+    command(core.SET_ROW_ADDR, (_offs_y+sy) | ( (_offs_y+ey) << 8), 2)
 
 
 PUB mirror_h(m)
@@ -174,7 +174,7 @@ PUB mirror_h(m)
 '       non-zero values:    enable
 '       zero:               disable
     _remap[0] := (_remap[0] & core.SEGREMAP_CLR) | ( (m <> 0) & 1) << core.SEG_REMAP
-    cmd2(core.SET_REMAP, _remap[0], _remap[1])
+    command(core.SET_REMAP, _remap[0] | (_remap[1] << 8), 2)
 
 
 PUB mirror_v(m)
@@ -183,7 +183,7 @@ PUB mirror_v(m)
 '       non-zero values:    enable
 '       zero:               disable
     _remap[0] := (_remap[0] & core.COMREMAP_CLR) | ( (m <> 0) & 1) << core.COM_REMAP
-    cmd2(core.SET_REMAP, _remap[0], _remap[1])
+    command(core.SET_REMAP, _remap[0] | (_remap[1] << 8), 2)
 
 
 PUB plot(x, y, c) | mask, p, b1'xxx need GFX_DIRECT case
@@ -226,9 +226,9 @@ PUB powered(p)
 '       non-zero values:    on
 '       false (0):          off
     if ( p )
-        cmd0(core.SLEEP_OFF)
+        command(core.SLEEP_OFF)
     else
-        cmd0(core.SLEEP_ON)
+        command(core.SLEEP_ON)
 
 
 PUB reset()
@@ -245,41 +245,23 @@ PUB reset()
 
 PUB show()
 ' Show the display buffer on the display
-    cmd2(core.SET_COL_ADDR, _offs_x, _offs_x+(_disp_xmax/4) )
-    cmd2(core.SET_ROW_ADDR, _offs_y, _disp_ymax)
-    cmd0(core.WR_RAM)
+    command(core.SET_COL_ADDR, _offs_x | ( (_offs_x+(_disp_xmax/4) ) << 8), 2)
+    command(core.SET_ROW_ADDR, _offs_y | (_disp_ymax << 8), 2)
+    command(core.WR_RAM)
     outa[_DC] := DATA
     outa[_CS] := 0
         spi.wrblock_lsbf(@_framebuffer, BUFF_SZ)
     outa[_CS] := 1
 
 
-PRI cmd0(c)
+PRI command(c, v=0, l=0)
 ' Issue simple command, no parameters
     outa[_DC] := CMD
     outa[_CS] := 0
         spi.wr_byte(c)
-    outa[_CS] := 1
-
-
-PRI cmd1(c, p)
-' Issue command with one parameter
-    outa[_DC] := CMD
-    outa[_CS] := 0
-        spi.wr_byte(c)
-        outa[_DC] := DATA
-        spi.wr_byte(p)
-    outa[_CS] := 1
-
-
-PRI cmd2(c, p1, p2)
-' Issue command with two parameters
-    outa[_DC] := CMD
-    outa[_CS] := 0
-        spi.wr_byte(c)
-        outa[_DC] := DATA
-        spi.wr_byte(p1)
-        spi.wr_byte(p2)
+        if ( l > 0 )
+            outa[_DC] := DATA
+            spi.wrblock_lsbf(@v, l)
     outa[_CS] := 1
 
 
