@@ -315,6 +315,13 @@ PUB show()
     outa[_CS] := 1
 
 
+PUB vdd_regulator(r)
+' Set Vdd regulator
+'   0:                  external regulator
+'   non-zero values:    internal regulator (default)
+    command(core.FUNC_SEL, (r <> 0) & 1, 1)
+
+
 PRI command(c, v=0, l=0)
 ' Issue simple command, no parameters
     outa[_DC] := CMD
