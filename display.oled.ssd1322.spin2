@@ -104,7 +104,9 @@ PUB defaults()
     disp_lines(64)
     command(core.SET_DISP_OFFS, $00, 1)
     disp_start_line(0)
-    command(core.SET_REMAP, $14 | ($11 << 8), 2)
+    mirror_h(false)
+    mirror_v(false)
+    nibble_remap(false)
     command(core.SET_GPIO, $00, 1)
     command(core.FUNC_SEL, $01, 1)
     command(core.DISP_ENH_A, $a0 | ($b5 << 8), 2)'$fd)
@@ -131,6 +133,7 @@ PUB preset_newhaven_3p12_256x64()
     _offs_y := 0
     _remap := (1 << core.COM_REMAP) | (1 << core.NIBB_REMAP)
     disp_lines(64)
+    command(core.SET_REMAP, _remap, 2)
 
 PUB clear() | y, x'xxx need GFX_DIRECT case
 ' Clear the display
@@ -201,6 +204,15 @@ PUB mirror_v(m)
 '       non-zero values:    enable
 '       zero:               disable
     _remap[0] := (_remap[0] & core.COMREMAP_CLR) | ( (m <> 0) & 1) << core.COM_REMAP
+    command(core.SET_REMAP, _remap[0] | (_remap[1] << 8), 2)
+
+
+PUB nibble_remap(r)
+' Remap pixel data nibbles (swap upper/lower 4 bits)
+'   r:
+'       non-zero values:    enable
+'       zero:               disable (default)
+    _remap[0] := (_remap[0] & core.NIBB_REMAP_CLR) | ( (r <> 0) & 1) << core.NIBB_REMAP
     command(core.SET_REMAP, _remap[0] | (_remap[1] << 8), 2)
 
 
