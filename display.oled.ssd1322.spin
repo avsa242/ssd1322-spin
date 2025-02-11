@@ -4,7 +4,7 @@
     Description:    Driver for SSD1322 OLED displays
     Author:         Jesse Burt
     Started:        Jul 17, 2023
-    Updated:        Feb 10, 2025
+    Updated:        Feb 11, 2025
     Copyright (c) 2025 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 }
@@ -53,6 +53,7 @@ VAR
 
     ' shadow registers
     byte _remap[2]                              ' set re-map and dual COM line mode
+    byte _clkdiv
 
 
 PUB start(): s
@@ -100,7 +101,8 @@ PUB defaults()
     _remap := $00
     command(core.SET_CMD_LOCK, $12, 1)
     powered(false)
-    command(core.SET_CLKDIV_OSCFREQ, $d0, 1)'$91)
+    clk_freq(1876)
+    clk_div(1)
     disp_lines(64)
     command(core.SET_DISP_OFFS, $00, 1)
     disp_start_line(0)
@@ -135,6 +137,24 @@ PUB preset_newhaven_3p12_256x64()
 PUB clear() | y, x'xxx need GFX_DIRECT case
 ' Clear the display
     bytefill(@_framebuffer, 0, BUFF_SZ)
+
+
+PUB clk_div(d)
+' Set clock frequency divider used by the display controller
+'   Valid values: 1..16 (clamped to range)
+    _clkdiv := ( (_clkdiv & core.CLK_DIV_CLR) | ( (1 #> d <# 16)-1) )
+    command(core.SET_CLKDIV_OSCFREQ, _clkdiv, 1)
+
+
+PUB clk_freq(f)
+' Set display internal oscillator frequency, in kHz
+'   Valid values: 1750..2130 (clamped to range; POR: 1876)
+'   NOTE: Range is interpolated, based on the datasheet min/max values and
+'   number of steps, so actual clock frequency may not be accurate.
+'   Value set will be rounded to the nearest 25.33kHz
+    f := ( ( ( ( (1750 #> f <# 2130) - 1750) * 100) / 25_33) << core.FOSCFREQ)
+    _clkdiv := ( (_clkdiv & core.FOSCFREQ_CLR) | f)
+    command(core.SET_CLKDIV_OSCFREQ, _clkdiv, 1)
 
 
 PUB contrast(c)
