@@ -53,7 +53,8 @@ VAR
 
     ' shadow registers
     byte _remap[2]                              ' set re-map and dual COM line mode
-    byte _clkdiv
+    byte _clkdiv                                ' clock divider and oscillator freq
+    byte _gpio_state                            ' gpio 0, 1 state
 
 
 PUB start(): s
@@ -108,6 +109,8 @@ PUB defaults()
     mirror_v(false)
     nibble_remap(false)
     command(core.SET_GPIO, $00, 1)
+    gpio_state(0, GPIO_HIZ_INP_DIS)
+    gpio_state(1, GPIO_HIZ_INP_DIS)
     command(core.FUNC_SEL, $01, 1)
     command(core.DISP_ENH_A, $a0 | ($b5 << 8), 2)'$fd)
     contrast(127)
@@ -187,6 +190,32 @@ PUB draw_area(sx, sy, ex, ey)
 ' Set display position for next drawing operation
     command(core.SET_COL_ADDR, (_offs_x+sx) | ( (_offs_x+ex) << 8), 2)
     command(core.SET_ROW_ADDR, (_offs_y+sy) | ( (_offs_y+ey) << 8), 2)
+
+
+CON
+
+    GPIO_HIZ_INP_DIS    = 0
+    GPIO_HIZ_INP_ENA    = 1
+    GPIO_OUT_LOW        = 2
+    GPIO_OUT_HIGH       = 3
+
+
+PUB gpio_state(p, s)
+' Set GPIO pin state
+'   p:  GPIO pin # (0..1)
+'   s:  state
+'       0: HiZ, input disabled
+'       1: HiZ, input enabled
+'       2: output, low (default)
+'       3: output, high
+    if ( p == 0 )
+        _gpio_state := (_gpio_state & core.GPIO0_CLR) | (s & core.GPIO0_BITS)
+    elseif ( p == 1 )
+        _gpio_state := (_gpio_state & core.GPIO1_CLR) | (s & core.GPIO1_BITS)
+    else
+        return
+
+    command(core.SET_GPIO, _gpio_state, 2)
 
 
 PUB mirror_h(m)
