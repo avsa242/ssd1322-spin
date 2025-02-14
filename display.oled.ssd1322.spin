@@ -4,7 +4,7 @@
     Description:    Driver for SSD1322 OLED displays
     Author:         Jesse Burt
     Started:        Jul 17, 2023
-    Updated:        Feb 11, 2025
+    Updated:        Feb 14, 2025
     Copyright (c) 2025 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 }
@@ -55,6 +55,7 @@ VAR
     byte _remap[2]                              ' set re-map and dual COM line mode
     byte _clkdiv                                ' clock divider and oscillator freq
     byte _gpio_state                            ' gpio 0, 1 state
+    byte _disp_enh_a[2]                         ' ext/int VSL, enhanced low GS disp quality
 
 
 PUB start(): s
@@ -320,6 +321,14 @@ PUB vdd_regulator(r)
 '   0:                  external regulator
 '   non-zero values:    internal regulator (default)
     command(core.FUNC_SEL, (r <> 0) & 1, 1)
+
+
+PUB vsl_reference(r)
+' Set Vsl reference
+'   0:                  external
+'   non-zero values:    internal (default)
+    _disp_enh_a[0] := (_disp_enh_a & core.VSL_MASK) | ( (r <> 0) ? core.VSL_INTERNAL : $00 )
+    command(core.DISP_ENH_A, _disp_enh_a[0], 1)
 
 
 PRI command(c, v=0, l=0)

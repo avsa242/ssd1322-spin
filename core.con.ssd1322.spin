@@ -4,8 +4,8 @@
     Description:    SSD1322-specific constants
     Author:         Jesse Burt
     Started:        Jul 17, 2023
-    Updated:        Aug 20, 2024
-    Copyright (c) 2024 - See end of file for terms of use.
+    Updated:        Feb 14, 2025
+    Copyright (c) 2025 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 }
 
@@ -84,6 +84,16 @@ CON
         CLK_DIV_CLR     = CLK_DIV_BITS ^ CLKDIV_MASK
 
     DISP_ENH_A          = $b4
+    DISP_ENH_A_A_MASK   = $a3
+        VSL_BITS        = %11
+        VSL_MASK        = VSL_BITS ^ DISP_ENH_A_A_MASK
+        VSL_INTERNAL    = %10
+    DISP_ENH_A_B_MASK   = $fd
+        LOWGS           = 3
+        LOWGS_BITS      = %11111
+        LOWGS_MASK      = (LOWGS_BITS << LOWGS) ^ DISP_ENH_A_B_MASK
+        ENH_LOWGS       = %11111 << LOWGS
+        NORM_LOWGS      = %10110 << LOWGS
 
     SET_GPIO            = $b5
     SETGPIO_MASK        = $0F
@@ -112,7 +122,7 @@ PUB null()
 
 DAT
 {
-Copyright 2024 Jesse Burt
+Copyright 2025 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
