@@ -317,6 +317,14 @@ PUB reset()
         outa[_RST] := 1
 
 
+PUB segment_current_scale(v)
+' Scale segment output current
+'   v:  scaling factor (1..16)
+'       1..15:  reduce output current to v/16
+'       16:     no change (default)
+    command(core.MAST_CURR_CTRL, (1 #> v <# 16)-1, 1)
+
+
 PUB show()
 ' Show the display buffer on the display
     command(core.SET_COL_ADDR, _offs_x | ( (_offs_x+(_disp_xmax/4) ) << 8), 2)
