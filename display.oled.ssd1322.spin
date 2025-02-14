@@ -123,8 +123,8 @@ PUB defaults()
     phase1_period(9)
     phase2_period(7)
     precharge_lvl(497)
-    precharge_period(8)
-    command(core.SET_VCOMH, $07, 1)
+    precharge_period(-1, 8)
+    vcomh_voltage(0_800)
     command(core.SET_DISP_MODE_NORM)
     command(core.DIS_PARTIAL_DISP)
     clear()
@@ -142,6 +142,7 @@ PUB preset_newhaven_3p12_256x64()
     disp_lines(64)
     command(core.SET_REMAP, _remap, 2)
     precharge_lvl(600)
+    vcomh_voltage(0_860)
 
 
 PUB clear() | y, x'xxx need GFX_DIRECT case
@@ -369,6 +370,12 @@ PUB show()
     outa[_CS] := 0
         spi.wrblock_lsbf(@_framebuffer, BUFF_SZ)
     outa[_CS] := 1
+
+
+PUB vcomh_voltage(l)
+' Set Vcom output voltage
+'   l:  0_720..0_860 millivolts (clamped to range; default: 0_800)
+    command(core.SET_VCOMH, ( (0_720 #> l <# 0_860) - 0_720), 1)
 
 
 PUB vdd_regulator(r)
