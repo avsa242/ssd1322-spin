@@ -10,13 +10,24 @@ This is a P8X32A/Propeller, P2X8C4M64P/Propeller 2 driver object for SSD1322 OLE
 
 * SPI connection at 20MHz (P1), 20MHz+ (P2)
 * Integration with generic graphics library
-* Set display contrast
+* Set display contrast and master current scaling
 * Set number of displayed lines
 * Set starting display line
 * Set panel-specific display offset
 * Set draw area for subsequent drawing operations
 * Enable display mirroring (H, V)
 * Enable display power/sleep
+* Display mirroring (horizontal, vertical)
+* Set display clock frequency, divider
+* Swap pixel data nibble order
+* Set GPIO 0, 1 state
+* Set Vdd regulator internal or external
+* Set Vsl internal/external reference
+* Set low greyscale level quality
+* Set timings: phase 1, 2, 3 period
+* Set Vcom voltage reference level
+* Set visibility mode (all pixels off/on, normal display, inverted display)
+* Set partial (vertical) display area
 
 
 ## Requirements
