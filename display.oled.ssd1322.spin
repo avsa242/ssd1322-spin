@@ -125,7 +125,7 @@ PUB defaults()
     precharge_lvl(497)
     precharge_period(-1, 8)
     vcomh_voltage(0_800)
-    command(core.SET_DISP_MODE_NORM)
+    visibility(NORMAL)
     command(core.DIS_PARTIAL_DISP)
     clear()
     show()
@@ -383,6 +383,23 @@ PUB vdd_regulator(r)
 '   0:                  external regulator
 '   non-zero values:    internal regulator (default)
     command(core.FUNC_SEL, (r <> 0) & 1, 1)
+
+
+CON
+
+    #0, ALL_OFF, ALL_ON, NORMAL, INVERTED
+
+PUB visibility(mode)
+' Set display visibility
+'   m:
+'       ALL_OFF (0):    Turns off all pixels
+'       ALL_ON (1):     Turns on all pixels (white)
+'       NORMAL (2):     Normal display (display graphics RAM contents)
+'       INVERTED (3):   Like NORMAL, but with inverted colors
+'   NOTE: This setting doesn't affect the contents of graphics RAM,
+'       only how they are displayed
+    mode := ( (ALL_OFF #> mode <# INVERTED) + core.SET_DISP_MODE_OFF)
+    command(mode)
 
 
 PUB vsl_reference(r)
