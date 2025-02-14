@@ -116,8 +116,8 @@ PUB defaults()
     vsl_reference(0)
     lowgs_quality(0)
     contrast(127)
-    command(core.MAST_CURR_CTRL, $0f, 1)
-    command(core.DEF_LINEAR_GRAY)
+    segment_current_scale(16)
+    greyscale_table_default_linear()
     command(core.SET_PHASE_LEN, $e2, 1)
     command(core.DISP_ENH_B, $a2 | ($20 << 8), 2)'$82, $20)
     command(core.SET_PRECHG_VOLT, $1f, 1)
@@ -218,6 +218,11 @@ PUB gpio_state(p, s)
         return
 
     command(core.SET_GPIO, _gpio_state, 2)
+
+
+PUB greyscale_table_default_linear()
+' Select default linear grey scale table
+    command(core.DEF_LINEAR_GRAY)
 
 
 PUB lowgs_quality(q)
