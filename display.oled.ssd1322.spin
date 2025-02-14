@@ -180,6 +180,13 @@ PUB disp_lines(l)
     command(core.SET_MUX_RATIO, 15 #> (l-1) <# 127, 1)
 
 
+PUB disp_offset(x, y)
+' Set display panel-specific offset
+'   x, y:   offset in pixels
+    _offs_x := x
+    _offs_y := y
+
+
 PUB disp_part_area(sy, ey)
 ' Enable partial-display mode and define visible area (rows) of display
 '   sy:     starting row of displayed area, 0..127
@@ -199,13 +206,6 @@ PUB disp_start_line(l)
 ' Set display start line
 '   Valid values: 0..127 (clamped to range; POR: 0)
     command(core.SET_DISP_ST_LINE, 0 #> l <# 127, 1)
-
-
-PUB disp_offset(x, y)
-' Set display panel-specific offset
-'   x, y:   offset in pixels
-    _offs_x := x
-    _offs_y := y
 
 
 PUB draw_area(sx, sy, ex, ey)
@@ -283,6 +283,20 @@ PUB nibble_remap(r)
     command(core.SET_REMAP, _remap[0] | (_remap[1] << 8), 2)
 
 
+PUB phase1_period(c)
+' Set phase 1 period (reset phase length)
+'   c:  5..31 (clamped to range; default: 9)
+    _phase_len := (_phase_len & core.PHASE1_CLR) | ( ( (5 #> c <# 31)-1) / 2)
+    command(core.SET_PHASE_LEN, _phase_len, 1)
+
+
+PUB phase2_period(c)
+' Set phase 2 period (first precharge phase length)
+'   c:  3..15 (clamped to range; default: 7)
+    _phase_len := (_phase_len & core.PHASE2_CLR) | ( (3 #> c <# 15) << core.PHASE2)
+    command(core.SET_PHASE_LEN, _phase_len, 1)
+
+
 PUB plot(x, y, c) | mask, p, b1'xxx need GFX_DIRECT case
 ' Draw a single pixel
 '   (x, y): screen coordinates
@@ -330,6 +344,20 @@ PUB powered(p)
         command(core.SLEEP_ON)
 
 
+PUB precharge_lvl(l)
+' Set first pre-charge voltage level (phase 2) of segment pins, in millivolts
+'   l:  200..600 (clamped to range; default: 497)
+    l := ( ( (200 #> l <# 600) * 10 ) / 12_9) - 16
+    command(core.SET_PRECHG_VOLT, l, 1)
+
+
+PUB precharge_period(p1, p2) | tmp
+' Set display refresh pre-charge period
+'   p1: ignored (for API compatibility with other drivers)
+'   p2: 0..15 display clocks (clamped to range; default: 8)
+    command(core.SET_SEC_PRECHG_PER, 0 #> p2 <# 15)
+
+
 PUB reset()
 ' Reset the device
     if ( lookdown(_RST: 0..31) )
@@ -348,34 +376,6 @@ PUB segment_current_scale(v)
 '       1..15:  reduce output current to v/16
 '       16:     no change (default)
     command(core.MAST_CURR_CTRL, (1 #> v <# 16)-1, 1)
-
-
-PUB phase1_period(c)
-' Set phase 1 period (reset phase length)
-'   c:  5..31 (clamped to range; default: 9)
-    _phase_len := (_phase_len & core.PHASE1_CLR) | ( ( (5 #> c <# 31)-1) / 2)
-    command(core.SET_PHASE_LEN, _phase_len, 1)
-
-
-PUB phase2_period(c)
-' Set phase 2 period (first precharge phase length)
-'   c:  3..15 (clamped to range; default: 7)
-    _phase_len := (_phase_len & core.PHASE2_CLR) | ( (3 #> c <# 15) << core.PHASE2)
-    command(core.SET_PHASE_LEN, _phase_len, 1)
-
-
-PUB precharge_lvl(l)
-' Set first pre-charge voltage level (phase 2) of segment pins, in millivolts
-'   l:  200..600 (clamped to range; default: 497)
-    l := ( ( (200 #> l <# 600) * 10 ) / 12_9) - 16
-    command(core.SET_PRECHG_VOLT, l, 1)
-
-
-PUB precharge_period(p1, p2) | tmp
-' Set display refresh pre-charge period
-'   p1: ignored (for API compatibility with other drivers)
-'   p2: 0..15 display clocks (clamped to range; default: 8)
-    command(core.SET_SEC_PRECHG_PER, 0 #> p2 <# 15)
 
 
 PUB show()
