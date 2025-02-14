@@ -56,7 +56,7 @@ VAR
     byte _clkdiv                                ' clock divider and oscillator freq
     byte _gpio_state                            ' gpio 0, 1 state
     byte _disp_enh_a[2]                         ' ext/int VSL, enhanced low GS disp quality
-
+    byte _phase_len                             ' phase 1, 2 period
 
 PUB start(): s
 ' Start the driver using default I/O settings and internal framebuffer
@@ -118,7 +118,8 @@ PUB defaults()
     contrast(127)
     segment_current_scale(16)
     greyscale_table_default_linear()
-    command(core.SET_PHASE_LEN, $e2, 1)
+    phase1_period(9)
+    phase2_period(7)
     command(core.DISP_ENH_B, $a2 | ($20 << 8), 2)'$82, $20)
     command(core.SET_PRECHG_VOLT, $1f, 1)
     command(core.SET_SEC_PRECHG_PER, $08, 1)
@@ -325,6 +326,20 @@ PUB segment_current_scale(v)
 '       1..15:  reduce output current to v/16
 '       16:     no change (default)
     command(core.MAST_CURR_CTRL, (1 #> v <# 16)-1, 1)
+
+
+PUB phase1_period(c)
+' Set phase 1 period (reset phase length)
+'   c:  5..31 (clamped to range; default: 9)
+    _phase_len := (_phase_len & core.PHASE1_CLR) | ( ( (5 #> c <# 31)-1) / 2)
+    command(core.SET_PHASE_LEN, _phase_len, 1)
+
+
+PUB phase2_period(c)
+' Set phase 2 period (first precharge phase length)
+'   c:  3..15 (clamped to range; default: 7)
+    _phase_len := (_phase_len & core.PHASE2_CLR) | ( (3 #> c <# 15) << core.PHASE2)
+    command(core.SET_PHASE_LEN, _phase_len, 1)
 
 
 PUB show()
