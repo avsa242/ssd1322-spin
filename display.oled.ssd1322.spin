@@ -180,6 +180,21 @@ PUB disp_lines(l)
     command(core.SET_MUX_RATIO, 15 #> (l-1) <# 127, 1)
 
 
+PUB disp_part_area(sy, ey)
+' Enable partial-display mode and define visible area (rows) of display
+'   sy:     starting row of displayed area, 0..127
+'   ey:     ending row of displayed area, sy..127
+'   NOTE: If either (or both) sy or ey are negative numbers, partial area mode will be disabled.
+    if ( (sy < 0) or (ey < 0) )
+        command(core.DIS_PARTIAL_DISP)
+        return
+
+    sy := 0 #> sy <# 127
+    ey := sy #> ey <# 127                       ' ending row must be >= sy
+
+    command(core.ENA_PARTIAL_DISP, (sy | (ey << 8) ), 2)
+
+
 PUB disp_start_line(l)
 ' Set display start line
 '   Valid values: 0..127 (clamped to range; POR: 0)
@@ -294,7 +309,7 @@ PUB point(x, y): c
 '   (x, y): screen coordinates
 '   Returns: 4-bit color
     { find pixel address within framebuffer }
-    c := byte[@_framebuffer[(x >> 1) + (y * (_disp_width / 2))]]
+    c := byte[ @_framebuffer+( (x >> 1) + (y * (_disp_width / 2) ) ) ]
     if ( x.[0] )                                ' for odd-numbered columns,
         c &= $0f                                '   get the lower nibble
     else                                        ' for even-numbered columns,
