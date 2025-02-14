@@ -123,7 +123,7 @@ PUB defaults()
     phase1_period(9)
     phase2_period(7)
     precharge_lvl(497)
-    command(core.SET_SEC_PRECHG_PER, $08, 1)
+    precharge_period(8)
     command(core.SET_VCOMH, $07, 1)
     command(core.SET_DISP_MODE_NORM)
     command(core.DIS_PARTIAL_DISP)
@@ -351,6 +351,13 @@ PUB precharge_lvl(l)
 '   l:  200..600 (clamped to range; default: 497)
     l := ( ( (200 #> l <# 600) * 10 ) / 12_9) - 16
     command(core.SET_PRECHG_VOLT, l, 1)
+
+
+PUB precharge_period(p1, p2) | tmp
+' Set display refresh pre-charge period
+'   p1: ignored (for API compatibility with other drivers)
+'   p2: 0..15 display clocks (clamped to range; default: 8)
+    command(core.SET_SEC_PRECHG_PER, 0 #> p2 <# 15)
 
 
 PUB show()
