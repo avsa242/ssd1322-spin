@@ -295,19 +295,19 @@ PUB phase2_period(c)
     command(core.SET_PHASE_LEN, _phase_len, 1)
 
 
-PUB plot(x, y, c) | mask, p, b1'xxx need GFX_DIRECT case
+PUB plot(x, y, c) | mask, p, b1
 ' Draw a single pixel
 '   (x, y): screen coordinates
 '   c:      color
     if ( (x < 0) or (x > _disp_xmax) or (y < 0) or (y > _disp_ymax) )
         return
+
     if ( x.[0] )                                ' for odd-numbered columns,
         mask := c                               '   put the color data into the lower nibble
     else                                        ' for even-numbered columns,
         mask := (c << 4)                        '   put the color data into the upper nibble
 
-'    mask := (x.[0]) ? c : (c << 4)'xxx alternate; evaluate timing & size
-
+    ' find offset in framebuffer
     p := @_framebuffer + ( (x >> 1) + (y * _bytesperln) )
     b1 := byte[p] & ( (x.[0]) ? $f0 : $0f )     ' grab pixel data from the upper or lower nibble,
                                                 '   depending on whether x is even or odd
