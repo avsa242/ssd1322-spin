@@ -219,6 +219,17 @@ PUB gpio_state(p, s)
     command(core.SET_GPIO, _gpio_state, 2)
 
 
+PUB lowgs_quality(q)
+' Set low greyscale quality
+'   q:
+'       non-zero values:    enhanced quality
+'       zero:               normal (default)
+    _disp_enh_a[1] :=   (_disp_enh_a[1] & core.LOWGS_MASK) | ...
+                        ( (q <> 0) ? core.ENH_LOWGS : core.NORM.LOWGS)
+
+    command(core.DISP_ENH_A, _disp_enh_a, 2)
+
+
 PUB mirror_h(m)
 ' Mirror the display horizontally
 '   m:
@@ -325,7 +336,7 @@ PUB vsl_reference(r)
 '   0:                  external
 '   non-zero values:    internal (default)
     _disp_enh_a[0] := (_disp_enh_a & core.VSL_MASK) | ( (r <> 0) ? core.VSL_INTERNAL : $00 )
-    command(core.DISP_ENH_A, _disp_enh_a[0], 1)
+    command(core.DISP_ENH_A, _disp_enh_a, 2)
 
 
 PRI command(c, v=0, l=0)
