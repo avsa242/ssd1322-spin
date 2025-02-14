@@ -115,7 +115,8 @@ PUB defaults()
     gpio_state(0, GPIO_HIZ_INP_DIS)
     gpio_state(1, GPIO_HIZ_INP_DIS)
     vdd_regulator(1)
-    command(core.DISP_ENH_A, $a0 | ($b5 << 8), 2)'$fd)
+    vsl_reference(0)
+    lowgs_quality(0)
     contrast(127)
     command(core.MAST_CURR_CTRL, $0f, 1)
     command(core.DEF_LINEAR_GRAY)
@@ -227,7 +228,7 @@ PUB lowgs_quality(q)
 '       non-zero values:    enhanced quality
 '       zero:               normal (default)
     _disp_enh_a[1] :=   (_disp_enh_a[1] & core.LOWGS_MASK) | ...
-                        ( (q <> 0) ? core.ENH_LOWGS : core.NORM.LOWGS)
+                        ( (q <> 0) ? core.ENH_LOWGS : core.NORM_LOWGS)
 
     command(core.DISP_ENH_A, _disp_enh_a, 2)
 
