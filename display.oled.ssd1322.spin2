@@ -306,6 +306,8 @@ PUB point(x, y): c
 ' Get the currently set color of a pixel
 '   (x, y): screen coordinates
 '   Returns: 4-bit color
+    if ( (x < 0) or (x > _disp_xmax) or (y < 0) or (y > _disp_ymax) )
+        return
     { find pixel address within framebuffer }
     c := byte[ @_framebuffer+( (x >> 1) + (y * (_disp_width / 2) ) ) ]
     if ( x.[0] )                                ' for odd-numbered columns,
