@@ -132,6 +132,20 @@ PUB defaults()
     powered(true)
 
 
+PUB preset_newhaven_2p7_128x64()
+' Preset settings: Newhaven NHD-2.7-12864WDY3M-CTP
+'   128x64
+'   Panel offsets: 28, 0
+    _offs_x := 56
+    _offs_y := 0
+    _remap[0] := (1 << core.COM_REMAP) | (1 << core.NIBB_REMAP)
+    _remap[1] := 0
+    disp_lines(64)
+    command(core.SET_REMAP, _remap, 2)
+    precharge_lvl(600)
+    vcomh_voltage(0_860)
+
+
 PUB preset_newhaven_3p12_256x64()
 ' Preset settings: Newhaven NHD-3.12-25664UCW2
 '   256x64
