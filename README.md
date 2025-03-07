@@ -28,6 +28,7 @@ This is a P8X32A/Propeller, P2X8C4M64P/Propeller 2 driver object for SSD1322 OLE
 * Set Vcom voltage reference level
 * Set visibility mode (all pixels off/on, normal display, inverted display)
 * Set partial (vertical) display area
+* Pixel-doubled (horizontal; 2 display segment drive per pixel) support
 
 
 ## Requirements
@@ -56,10 +57,11 @@ P2/SPIN2:
 
 ## Hardware Compatibility
 
-* Tested with Newhaven Display 3.12" 256x64
+* Tested with Newhaven Display 3.12" 256x64, NHD-3.12-25664UCW2
+* Tested with Newhaven Display 2.7" 128x64, NHD-2.7-12864WDx3M (H pixel-doubled)
 
 
 ## Limitations
 
-* TBD
+* Pixel-doubled display refresh is _slow_ on the P1; PASM build is recommended
 

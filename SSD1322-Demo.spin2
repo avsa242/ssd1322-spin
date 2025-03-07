@@ -4,23 +4,22 @@
     Description:    Demo of the SSD1322 driver
     Author:         Jesse Burt
     Started:        Jan 15, 2024
-    Updated:        Aug 20, 2024
-    Copyright (c) 2024 - See end of file for terms of use.
+    Updated:        Mar 7, 2025
+    Copyright (c) 2025 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 }
 
 CON
 
-    _clkfreq    = cfg._clkfreq_def
-    _xtlfreq    = cfg._xtlfreq
+    _clkfreq    = 180_000_000
+    _xtlfreq    = 20_000_000
 
 
 OBJ
 
-    cfg:    "boardcfg.p2eval"
     fnt:    "font.5x8"
     ser:    "com.serial.terminal.ansi" | SER_BAUD=2_000_000
-    disp:   "display.oled.ssd1322" | CS=32, SCK=33, MOSI=34, DC=35, RST=36, WIDTH=256, HEIGHT=64, ...
+    disp:   "display.oled.ssd1322" | CS=0, SCK=1, MOSI=2, DC=3, RST=4, WIDTH=256, HEIGHT=64, ...
                                         SPI_FREQ=10_000_000
 
 
@@ -38,7 +37,13 @@ PUB setup()
         ser.strln(@"SSD1322 driver failed to start - halting")
         repeat
 
-    disp.defaults()
+    ' Choose a preset appropriate to your display (must match resolution set in OBJ line)
+    'disp.preset_newhaven_2p7_128x64()
+    disp.preset_newhaven_3p12_256x64()
+
+    ' optionally change these to match the orientation of your display
+    'disp.mirror_h(false)
+    'disp.mirror_v(false)
 
     _time := 5_000                              ' runtime of each demo (ms)
 
@@ -49,12 +54,13 @@ DAT
 
     _drv_name   byte "SSD1322", 0
 
+
 #include "GFXDemo-common.spin2h"
 
 
 DAT
 {
-Copyright 2024 Jesse Burt
+Copyright 2025 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,

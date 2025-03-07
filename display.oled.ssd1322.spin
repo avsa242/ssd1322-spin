@@ -4,7 +4,7 @@
     Description:    Driver for SSD1322 OLED displays
     Author:         Jesse Burt
     Started:        Jul 17, 2023
-    Updated:        Feb 14, 2025
+    Updated:        Mar 7, 2025
     Copyright (c) 2025 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 }
@@ -45,9 +45,11 @@ OBJ
     spi:    "com.spi.20mhz"                     ' SPI engine
     time:   "time"                              ' timekeeping methods
 
+
 VAR
 
     word _offs_x, _offs_y                       ' display panel-specific offsets
+    word _xaddr_max                             ' display internal X-max address
     byte _framebuffer[BUFF_SZ]                  ' display/framebuffer
     byte _CS, _DC, _RST
 
@@ -57,6 +59,8 @@ VAR
     byte _gpio_state                            ' gpio 0, 1 state
     byte _disp_enh_a[2]                         ' ext/int VSL, enhanced low GS disp quality
     byte _phase_len                             ' phase 1, 2 period
+    byte _seg_per_pix                           ' SEGments per pixel
+
 
 PUB start(): s
 ' Start the driver using default I/O settings and internal framebuffer
@@ -83,8 +87,6 @@ PUB startx(CS_PIN, SCK_PIN, MOSI_PIN, DC_PIN, RES_PIN, SCK_FREQ, DISP_WID, DISP_
         _CS := CS_PIN
         _DC := DC_PIN
         _RST := RES_PIN
-        reset()
-        defaults()
         set_dims(DISP_WID, DISP_HT)
         set_address(p_fb)
         return s
@@ -101,17 +103,19 @@ PUB stop()
 PUB defaults()
 ' Factory default settings
     _remap := $00
-    command(core.SET_CMD_LOCK, $12, 1)
+    _seg_per_pix := 1
+    _xaddr_max := _disp_xmax/4
+    command(core.SET_CMD_LOCK, 1, $12)
     powered(false)
     clk_freq(1876)
     clk_div(1)
     disp_lines(64)
-    command(core.SET_DISP_OFFS, $00, 1)
+    command(core.SET_DISP_OFFS, 1, $00)
     disp_start_line(0)
     mirror_h(false)
     mirror_v(false)
     nibble_remap(false)
-    command(core.SET_GPIO, $00, 1)
+    command(core.SET_GPIO, 1, $00)
     gpio_state(0, GPIO_HIZ_INP_DIS)
     gpio_state(1, GPIO_HIZ_INP_DIS)
     vdd_regulator(1)
@@ -128,47 +132,72 @@ PUB defaults()
     visibility(NORMAL)
     disp_part_area(-1, -1)
     clear()
-    show()
     powered(true)
 
 
 PUB preset_newhaven_2p7_128x64()
-' Preset settings: Newhaven NHD-2.7-12864WDY3M-CTP
+' Preset settings: Newhaven NHD-2.7-12864WDx3M (with or without -CTP)
 '   128x64
 '   Panel offsets: 28, 0
-    _offs_x := 56
-    _offs_y := 0
-    _remap[0] := (1 << core.COM_REMAP) | (1 << core.NIBB_REMAP)
-    _remap[1] := 0
+    _remap[0] := 1 << 3
+    _remap[1] := $01
+    _seg_per_pix := 2
+    disp_offset(28, 0)
+    _xaddr_max := _offs_x + (_disp_xmax / _seg_per_pix)
+
+    reset()
+    powered(false)
+    nibble_remap(true)
+    mirror_h(true)
+    mirror_v(true)
     disp_lines(64)
-    command(core.SET_REMAP, _remap, 2)
     precharge_lvl(600)
     vcomh_voltage(0_860)
+    clk_freq(1750)
+    clk_div(1)
+    phase1_period(5)
+    phase2_period(14)
+    gpio_state(0, 0)
+    gpio_state(1, 0)
+    powered(true)
 
 
 PUB preset_newhaven_3p12_256x64()
 ' Preset settings: Newhaven NHD-3.12-25664UCW2
 '   256x64
 '   Panel offsets: 28, 0
-    _offs_x := 28
-    _offs_y := 0
-    _remap := (1 << core.COM_REMAP) | (1 << core.NIBB_REMAP)
+    _remap[0] := (1 << core.COM_REMAP) | (1 << core.NIBB_REMAP)
+    _remap[1] := $01
+    _seg_per_pix := 1
+    disp_offset(28, 0)
+    _xaddr_max := _offs_x + (_disp_xmax / 4 / _seg_per_pix)
+
+    powered(false)
+    nibble_remap(true)
+    mirror_h(false)
+    mirror_v(true)
     disp_lines(64)
-    command(core.SET_REMAP, _remap, 2)
     precharge_lvl(600)
     vcomh_voltage(0_860)
+    clk_freq(1750)
+    clk_div(1)
+    phase1_period(5)
+    phase2_period(14)
+    gpio_state(0, 0)
+    gpio_state(1, 0)
+    powered(true)
 
 
 PUB clear() | y, x'xxx need GFX_DIRECT case
 ' Clear the display
-    bytefill(@_framebuffer, 0, BUFF_SZ)
+    bytefill(@_framebuffer, 0, _buff_sz)
 
 
 PUB clk_div(d)
 ' Set clock frequency divider used by the display controller
 '   Valid values: 1..16 (clamped to range)
     _clkdiv := ( (_clkdiv & core.CLK_DIV_CLR) | ( (1 #> d <# 16)-1) )
-    command(core.SET_CLKDIV_OSCFREQ, _clkdiv, 1)
+    command(core.SET_CLKDIV_OSCFREQ, 1, _clkdiv)
 
 
 PUB clk_freq(f)
@@ -179,19 +208,19 @@ PUB clk_freq(f)
 '   Value set will be rounded to the nearest 25.33kHz
     f := ( ( ( ( (1750 #> f <# 2130) - 1750) * 100) / 25_33) << core.FOSCFREQ)
     _clkdiv := ( (_clkdiv & core.FOSCFREQ_CLR) | f)
-    command(core.SET_CLKDIV_OSCFREQ, _clkdiv, 1)
+    command(core.SET_CLKDIV_OSCFREQ, 1, _clkdiv)
 
 
 PUB contrast(c)
 ' Set display contrast
 '   c:  0..255
-    command(core.SET_CONTR_CURR, c, 1)
+    command(core.SET_CONTR_CURR, 1, c)
 
 
 PUB disp_lines(l)
 ' Set total number of display lines
 '   l:  16..128 (clamped to range)
-    command(core.SET_MUX_RATIO, 15 #> (l-1) <# 127, 1)
+    command(core.SET_MUX_RATIO, 1, 15 #> (l-1) <# 127)
 
 
 PUB disp_offset(x, y)
@@ -213,20 +242,22 @@ PUB disp_part_area(sy, ey)
     sy := 0 #> sy <# 127
     ey := sy #> ey <# 127                       ' ending row must be >= sy
 
-    command(core.ENA_PARTIAL_DISP, (sy | (ey << 8) ), 2)
+    command(core.ENA_PARTIAL_DISP, 2, sy, ey)
 
 
 PUB disp_start_line(l)
 ' Set display start line
 '   Valid values: 0..127 (clamped to range; POR: 0)
-    command(core.SET_DISP_ST_LINE, 0 #> l <# 127, 1)
+    command(core.SET_DISP_ST_LINE, 1, 0 #> l <# 127)
 
 
 PUB draw_area(sx, sy, ex, ey)
 ' Set display position for next drawing operation
-    command(core.SET_COL_ADDR, (_offs_x+sx) | ( (_offs_x+ex) << 8), 2)
-    command(core.SET_ROW_ADDR, (_offs_y+sy) | ( (_offs_y+ey) << 8), 2)
+'    command(core.SET_COL_ADDR, (_offs_x+sx) | ( (_offs_x+ex) << 8), 2)
+'    command(core.SET_ROW_ADDR, (_offs_y+sy) | ( (_offs_y+ey) << 8), 2)
 
+    command(core.SET_COL_ADDR, 2, (_offs_x+sx), (_offs_x+(ex/4) ) )
+    command(core.SET_ROW_ADDR, 2, (_offs_y+sy), ey)
 
 CON
 
@@ -251,7 +282,7 @@ PUB gpio_state(p, s)
     else
         return
 
-    command(core.SET_GPIO, _gpio_state, 2)
+    command(core.SET_GPIO, 2, _gpio_state)
 
 
 PUB greyscale_table_default_linear()
@@ -267,7 +298,7 @@ PUB lowgs_quality(q)
     _disp_enh_a[1] :=   (_disp_enh_a[1] & core.LOWGS_MASK) | ...
                         ( (q <> 0) ? core.ENH_LOWGS : core.NORM_LOWGS)
 
-    command(core.DISP_ENH_A, _disp_enh_a, 2)
+    command(core.DISP_ENH_A, 2, _disp_enh_a)
 
 
 PUB mirror_h(m)
@@ -276,7 +307,7 @@ PUB mirror_h(m)
 '       non-zero values:    enable
 '       zero:               disable
     _remap[0] := (_remap[0] & core.SEGREMAP_CLR) | ( (m <> 0) & 1) << core.SEG_REMAP
-    command(core.SET_REMAP, _remap[0] | (_remap[1] << 8), 2)
+    command(core.SET_REMAP, 2, _remap[0], _remap[1])
 
 
 PUB mirror_v(m)
@@ -285,7 +316,7 @@ PUB mirror_v(m)
 '       non-zero values:    enable
 '       zero:               disable
     _remap[0] := (_remap[0] & core.COMREMAP_CLR) | ( (m <> 0) & 1) << core.COM_REMAP
-    command(core.SET_REMAP, _remap[0] | (_remap[1] << 8), 2)
+    command(core.SET_REMAP, 2, _remap[0], _remap[1])
 
 
 PUB nibble_remap(r)
@@ -294,21 +325,21 @@ PUB nibble_remap(r)
 '       non-zero values:    enable
 '       zero:               disable (default)
     _remap[0] := (_remap[0] & core.NIBB_REMAP_CLR) | ( (r <> 0) & 1) << core.NIBB_REMAP
-    command(core.SET_REMAP, _remap[0] | (_remap[1] << 8), 2)
+    command(core.SET_REMAP, 2, _remap[0], _remap[1])
 
 
 PUB phase1_period(c)
 ' Set phase 1 period (reset phase length)
 '   c:  5..31 (clamped to range; default: 9)
     _phase_len := (_phase_len & core.PHASE1_CLR) | ( ( (5 #> c <# 31)-1) / 2)
-    command(core.SET_PHASE_LEN, _phase_len, 1)
+    command(core.SET_PHASE_LEN, 1, _phase_len)
 
 
 PUB phase2_period(c)
 ' Set phase 2 period (first precharge phase length)
 '   c:  3..15 (clamped to range; default: 7)
     _phase_len := (_phase_len & core.PHASE2_CLR) | ( (3 #> c <# 15) << core.PHASE2)
-    command(core.SET_PHASE_LEN, _phase_len, 1)
+    command(core.SET_PHASE_LEN, 1, _phase_len)
 
 
 PUB plot(x, y, c) | mask, p, b1
@@ -339,7 +370,7 @@ PUB point(x, y): c
     if ( (x < 0) or (x > _disp_xmax) or (y < 0) or (y > _disp_ymax) )
         return
     { find pixel address within framebuffer }
-    c := byte[ @_framebuffer+( (x >> 1) + (y * (_disp_width / 2) ) ) ]
+    c := byte[ @_framebuffer+( (x >> 1) + (y * _bytesperln ) ) ]
     if ( x.[0] )                                ' for odd-numbered columns,
         c &= $0f                                '   get the lower nibble
     else                                        ' for even-numbered columns,
@@ -362,14 +393,14 @@ PUB precharge_lvl(l)
 ' Set first pre-charge voltage level (phase 2) of segment pins, in millivolts
 '   l:  200..600 (clamped to range; default: 497)
     l := ( ( (200 #> l <# 600) * 10 ) / 12_9) - 16
-    command(core.SET_PRECHG_VOLT, l, 1)
+    command(core.SET_PRECHG_VOLT, 1, l)
 
 
 PUB precharge_period(p1, p2) | tmp
 ' Set display refresh pre-charge period
 '   p1: ignored (for API compatibility with other drivers)
 '   p2: 0..15 display clocks (clamped to range; default: 8)
-    command(core.SET_SEC_PRECHG_PER, 0 #> p2 <# 15)
+    command(core.SET_SEC_PRECHG_PER, 1, 0 #> p2 <# 15)
 
 
 PUB reset()
@@ -389,31 +420,69 @@ PUB segment_current_scale(v)
 '   v:  scaling factor (1..16)
 '       1..15:  reduce output current to v/16
 '       16:     no change (default)
-    command(core.MAST_CURR_CTRL, (1 #> v <# 16)-1, 1)
+    command(core.MAST_CURR_CTRL, 1, (1 #> v <# 16)-1)
 
 
-PUB show()
-' Show the display buffer on the display
-    command(core.SET_COL_ADDR, _offs_x | ( (_offs_x+(_disp_xmax/4) ) << 8), 2)
-    command(core.SET_ROW_ADDR, _offs_y | (_disp_ymax << 8), 2)
-    command(core.WR_RAM)
-    outa[_DC] := DATA
+PUB set_gamma_table(p_tbl) | i
+' Set gamma table
+'   p_tbl:  pointer to 15-byte gamma/greyscale table
+    command(core.SET_GRAYSCALE_TBL)
+    outa[_DC] := 1
     outa[_CS] := 0
-        spi.wrblock_lsbf(@_framebuffer, BUFF_SZ)
+    repeat i from 0 to 14
+        spi.wr_byte( byte[p_tbl][i] )           ' 0..180 each
     outa[_CS] := 1
+    command(core.ENA_GRAYSCALE_TBL)
+
+
+CON LINEBUFF_SZ = 128
+PUB show() | tmp, y, x, p, b, row_buff[LINEBUFF_SZ/4], w, o
+' Show the display buffer on the display
+    tmp.byte[0] := _offs_x
+    tmp.byte[1] := _xaddr_max
+    command(core.SET_COL_ADDR, 2, tmp.byte[0], tmp.byte[1])
+
+    tmp.byte[0] := _offs_y
+    tmp.byte[1] := _disp_ymax
+    command(core.SET_ROW_ADDR, 2, tmp.byte[0], tmp.byte[1])
+
+    command(core.WR_RAM)
+
+    if ( _seg_per_pix == 1 )
+        outa[_DC] := DATA
+        outa[_CS] := 0
+            spi.wrblock_lsbf(@_framebuffer, _buff_sz)
+        outa[_CS] := 1
+    elseif ( _seg_per_pix == 2 )
+        ' pixel-doubled (x-axis) displays: these use two display SEGments to drive each pixel
+        '   so the pixel data has to be sent twice for each to get the pixel to display
+        outa[_DC] := DATA
+        outa[_CS] := 0
+        ' buffer a line of display data and send it out at once to avoid the (severe) penalty
+        '   of writing individual bytes at a time
+        repeat y from 0 to _disp_ymax
+            o := 0
+            repeat x from 0 to (_disp_xmax >> 1)
+                p := byte[@_framebuffer + ( x + (y * _bytesperln))]
+                ' write the upper nibble, then the lower nibble (SEG pairs mapped to single pixel)
+                w := 	( (p.[3..0] << 4) | p.[3..0] ) << 8 | ...'SEG0, SEG1...
+                        ( (p.[7..4] << 4) | p.[7..4] )			 'SEG2, SEG3...
+                row_buff.word[o++] := w
+            spi.wrblock_lsbf(@row_buff, LINEBUFF_SZ)
+        outa[_CS] := 1
 
 
 PUB vcomh_voltage(l)
 ' Set Vcom output voltage
 '   l:  0_720..0_860 millivolts (clamped to range; default: 0_800)
-    command(core.SET_VCOMH, ( (0_720 #> l <# 0_860) - 0_720), 1)
+    command(core.SET_VCOMH, 1, ( (0_720 #> l <# 0_860) - 0_720) )
 
 
 PUB vdd_regulator(r)
 ' Set Vdd regulator
 '   0:                  external regulator
 '   non-zero values:    internal regulator (default)
-    command(core.FUNC_SEL, (r <> 0) & 1, 1)
+    command(core.FUNC_SEL, 1, (r <> 0) & 1)
 
 
 CON
@@ -438,17 +507,19 @@ PUB vsl_reference(r)
 '   0:                  external
 '   non-zero values:    internal (default)
     _disp_enh_a[0] := (_disp_enh_a & core.VSL_MASK) | ( (r <> 0) ? core.VSL_INTERNAL : $00 )
-    command(core.DISP_ENH_A, _disp_enh_a, 2)
+    command(core.DISP_ENH_A, 2, _disp_enh_a[0], _disp_enh_a[1])
 
 
-PRI command(c, v=0, l=0)
+PRI command(c, l=0, v1=0, v2=0)
 ' Issue simple command, no parameters
     outa[_DC] := CMD
     outa[_CS] := 0
         spi.wr_byte(c)
-        if ( l > 0 )
+        if ( l )
             outa[_DC] := DATA
-            spi.wrblock_lsbf(@v, l)
+            spi.wrblock_lsbf(@v1, 1)
+            if ( l == 2 )
+                spi.wrblock_lsbf(@v2, 1)
     outa[_CS] := 1
 
 
@@ -458,9 +529,9 @@ PRI memfill(xs, ys, val, count)
 '   xs, ys: Start of region
 '   val: Color
 '   count: Number of consecutive memory locations to write
-    bytefill(   _ptr_drawbuffer + (xs >> 1) + (ys * (_disp_width/2)), ...
+    bytefill(   _ptr_drawbuffer + (xs >> 1) + (ys * _bytesperln), ...
                 val | (val << 4), ...
-                count / 2 )
+                count / BPPDIV )
 #endif
 
 #include "graphics.common.spinh"
@@ -484,4 +555,3 @@ NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FO
 DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
 OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 }
-
