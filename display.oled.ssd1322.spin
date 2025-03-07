@@ -253,10 +253,10 @@ PUB disp_start_line(l)
 
 PUB draw_area(sx, sy, ex, ey)
 ' Set display position for next drawing operation
-'    command(core.SET_COL_ADDR, (_offs_x+sx) | ( (_offs_x+ex) << 8), 2)
-'    command(core.SET_ROW_ADDR, (_offs_y+sy) | ( (_offs_y+ey) << 8), 2)
-
-    command(core.SET_COL_ADDR, 2, (_offs_x+sx), (_offs_x+(ex/4) ) )
+    if ( _seg_per_pix == 1 )
+        command(core.SET_COL_ADDR, 2, (_offs_x+sx), (_offs_x+(ex/4) ) )
+    elseif ( _seg_per_pix == 2 )
+        command(core.SET_COL_ADDR, 2, (_offs_x+sx), (_offs_x+(ex/2) ) )
     command(core.SET_ROW_ADDR, 2, (_offs_y+sy), ey)
 
 CON
